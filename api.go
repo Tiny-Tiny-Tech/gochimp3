@@ -11,7 +11,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"reflect"
-	"regexp"
 	"time"
 )
 
@@ -20,9 +19,6 @@ const URIFormat string = "%s.api.mailchimp.com"
 
 // Version the latest API version
 const Version string = "/3.0"
-
-// DatacenterRegex defines which datacenter to hit
-var DatacenterRegex = regexp.MustCompile("[^-]\\w+$")
 
 // API represents the origin of the API
 type API struct {
@@ -37,16 +33,24 @@ type API struct {
 }
 
 // New creates a API
-func New(apiKey string) *API {
+func New(dc string, apiKey string) *API {
 	u := url.URL{}
 	u.Scheme = "https"
-	u.Host = fmt.Sprintf(URIFormat, DatacenterRegex.FindString(apiKey))
+	u.Host = fmt.Sprintf(URIFormat, dc)
 	u.Path = Version
 
 	return &API{
 		User:     "gochimp3",
 		Key:      apiKey,
 		endpoint: u.String(),
+	}
+}
+
+func NewMetadataClient(apiKey string) *API {
+	return &API{
+		User:     "gochimp3",
+		Key:      apiKey,
+		endpoint: "https://login.mailchimp.com",
 	}
 }
 
@@ -82,7 +86,7 @@ func (api *API) Request(method, path string, params QueryParams, body, response 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth(api.User, api.Key)
+	req.Header.Set("Authorization", fmt.Sprintf("OAuth %s", api.Key))
 
 	if params != nil && !reflect.ValueOf(params).IsNil() {
 		queryParams := req.URL.Query()
@@ -92,7 +96,7 @@ func (api *API) Request(method, path string, params QueryParams, body, response 
 			}
 		}
 		req.URL.RawQuery = queryParams.Encode()
-		
+
 		if api.Debug {
 			log.Printf("Adding query params: %q\n", req.URL.Query())
 		}

@@ -1,4 +1,4 @@
-module github.com/hanzoai/gochimp3
+module github.com/Tiny-Tiny-Tech/gochimp3
 
 go 1.13
 
